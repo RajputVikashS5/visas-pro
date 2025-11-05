@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visas Pro - AI Operating System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>🧠 Visas Pro</h1>
+            <div class="status">Connected</div>
+        </header>
+
+        <div class="chat-container">
+            <div id="chat" class="chat"></div>
+            <input type="text" id="query" placeholder="Ask Visas anything... (e.g., 'write a letter')" />
+            <button onclick="sendQuery()">Send</button>
+            <button onclick="speakQuery()">🎤 Speak</button>
+        </div>
+
+        <div class="features">
+            <button onclick="startFocus()">🧠 Focus Mode (25min)</button>
+            <button onclick="togglePrivacy()">🛡️ Privacy Shield</button>
+            <button onclick="readScreen()">📱 Read Screen</button>
+            <button onclick="smartClipboard()">📋 Smart Clipboard</button>
+        </div>
+
+        <div id="timeline" class="timeline">
+            <h3>⏰ Time Travel</h3>
+            <div id="events"></div>
+        </div>
+
+        <div id="summary-bubble" class="bubble hidden">
+            <p id="bubble-text">Select text for AI summary...</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bubble.js') }}"></script>
+    <script>
+        const socket = io();
+        
+        socket.on('connect', () => {
+            document.querySelector('.status').textContent = 'Connected';
+        });
+        
+        socket.on('response', (data) => {
+            addMessage('Visas', data.text);
+            if (data.emotion) {
+                addMessage('Emotion', `Detected: ${data.emotion}`);
+            }
+        });
+        
+        socket.on('notification', (data) => {
+            alert(data.message);  // Or use notification API
+        });
+
+        function addMessage(sender, text) {
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="message"><strong>${sender}:</strong> ${text}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function sendQuery() {
+            const query = document.getElementById('query').value;
+            socket.emit('query', {query: query});
+            addMessage('You', query);
+            document.getElementById('query').value = '';
+        }
+
+        function speakQuery() {
+            // Use Web Speech API for browser mic
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('query').value = text;
+                sendQuery();
+            };
+            recognition.start();
+        }
+
+        function startFocus() {
+            fetch('/focus', {method: 'POST', headers: {'Content-Type': 'application/json'}})
+                .then(r => r.json())
+                .then(data => alert(data.status));
+        }
+
+        function togglePrivacy() {
+            fetch('/privacy', {method: 'POST'})
+                .then(r => r.json())
+                .then(data => alert(data.status));
+        }
+
+        function readScreen() {
+            fetch('/ocr')
+                .then(r => r.json())
+                .then(data => addMessage('Screen OCR', data.explanation));
+        }
+
+        function smartClipboard() {
+            navigator.clipboard.readText().then(text => {
+                fetch('/clipboard', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text: text})
+                }).then(r => r.json())
+                  .then(data => addMessage('Clipboard AI', data.summary));
+            });
+        }
+
+        // Load timeline
+        fetch('/replay/default').then(r => r.json()).then(data => {
+            const events = document.getElementById('events');
+            data.history.forEach((msg, i) => {
+                if (i % 2 === 0) {  // User messages
+                    events.innerHTML += `<div class="event" onclick="replayMessage(${i})">${msg.content.substring(0, 50)}...</div>`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
