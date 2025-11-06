@@ -1,3 +1,5 @@
+from datetime import time
+import traceback
 import speech_recognition as sr
 import sounddevice as sd
 import pyttsx3
@@ -12,10 +14,29 @@ class VoiceHandler:
     def __init__(self):
         self.engine = pyttsx3.init()
         self.recognizer = sr.Recognizer()
-        self.microphone = None
+        try:
+            self.microphone = sr.Microphone()
+        except Exception as e:
+            print(f"[VoiceHandler] ⚠️ Microphone initialization failed: {e}")
+            self.microphone = None
         self.whisper_mode = False
         self.listening = False
+    def start_continuous_listening_to_cloud(self, sio, phrase_time_limit=5):
+        """Capture mic audio and send base64 WAV chunks to server via 'voice_input' event."""
+        with self.microphone as source:
+            self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
 
+        while True:
+            try:
+                with self.microphone as source:
+                    audio = self.recognizer.listen(source, phrase_time_limit=phrase_time_limit)
+
+                wav_bytes = audio.get_wav_data()                # 16-bit PCM WAV
+                audio_b64 = base64.b64encode(wav_bytes).decode("ascii")
+                sio.emit('voice_input', audio_b64)              # matches your server event
+            except Exception:
+                traceback.print_exc()
+                time.sleep(0.5)
     def detect_emotion(self, audio_wav):
         y, sr = librosa.load(io.BytesIO(audio_wav), sr=16000)
         energy = np.mean(librosa.feature.rms(y=y))
@@ -45,7 +66,7 @@ class VoiceHandler:
         self.whisper_mode = not self.whisper_mode
         return f"Whisper mode {'ON' if self.whisper_mode else 'OFF'}"
 
-    def start_continuous_listening(self, grok_client, memory_manager, system_controller, plugins, socketio):
+    def start_continuous_listening(self, openrouter_client, memory_manager, system_controller, plugins, socketio):
         self.listening = True
         with self.microphone as source:
             self.recognizer.adjust_for_ambient_noise(source)
@@ -60,7 +81,7 @@ class VoiceHandler:
                         query = f"[Stressed user] {query}"
                     session_id = 'voice'
                     history = memory_manager.get_history(session_id)
-                    response, tool_calls = grok_client.query(query, history, [t for p in plugins.values() for t in p.get_tools()])
+                    response, tool_calls = openrouter_client.query(query, history, [t for p in plugins.values() for t in p.get_tools()])
                     if tool_calls:
                         for call in tool_calls:
                             result = system_controller.execute_tool(call, plugins)

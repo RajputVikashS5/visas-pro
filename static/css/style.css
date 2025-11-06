@@ -239,3 +239,12 @@ button:hover {
     padding: 12px;
   }
 }
+#visas-avatar {
+    pointer-events: auto;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+#visas-avatar:hover {
+    transform: scale(1.1);
+}

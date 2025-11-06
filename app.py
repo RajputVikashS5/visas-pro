@@ -184,13 +184,14 @@ def handle_error(e):
 # ---------------------- MAIN ENTRY ----------------------
 
 if __name__ == '__main__':
-    # Run background threads safely via SocketIO tasks
+    # Background threads
     socketio.start_background_task(run_voice)
     socketio.start_background_task(run_tray)
 
-    socketio.run(
-        app,
-        host='0.0.0.0',
-        port=int(os.environ.get('PORT', 5000)),
-        debug=False
-    )
+    # Check if running in Render/Heroku or locally
+    if 'RENDER' in os.environ or 'HEROKU' in os.environ or os.getenv('DYNO'):
+        print("🚀 Running on Render/Heroku environment")
+        socketio.run(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    else:
+        print("🧠 Running locally at http://localhost:5000")
+        socketio.run(app, host='0.0.0.0', port=5000, debug=True)

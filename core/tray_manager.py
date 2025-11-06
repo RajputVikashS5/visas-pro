@@ -7,59 +7,58 @@ import requests
 import os
 import webbrowser
 
+
 class AvatarWidget(QWebEngineView):
     def __init__(self):
         super().__init__()
-        self.load(QUrl.fromLocalFile(os.path.abspath('static/avatar.html')))
+        avatar_path = os.path.abspath('static/avatar.html')
+        self.load(QUrl.fromLocalFile(avatar_path))
         self.setFixedSize(200, 200)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
+        self.show()  # Show immediately
+
 
 def start_tray(socketio):
     app = QApplication(sys.argv)
-    
+    app.setQuitOnLastWindowClosed(False)  # Keep tray alive when window closed
+
     # Avatar window
     avatar = AvatarWidget()
-    avatar.show()
-    
+
     # Tray icon
     tray = QSystemTrayIcon()
-    tray.setIcon(QIcon('static/icon.png'))  # Add your icon
+    icon_path = os.path.abspath("static/icon.png")
+    tray.setIcon(QIcon(icon_path))
     tray.setToolTip('Visas Pro - AI Assistant')
 
+    # Menu setup
     menu = QMenu()
-    
+
+    # Dashboard
     open_dashboard = QAction("🖥️ Open Dashboard")
     open_dashboard.triggered.connect(lambda: webbrowser.open('http://localhost:5000'))
-    
+
+    # Voice mode toggle
     toggle_voice = QAction("🎤 Toggle Voice Mode")
-    toggle_voice.triggered.connect(lambda: requests.post('http://localhost:5000/tray', json={'action': 'toggle_voice'}))
-    
+    toggle_voice.triggered.connect(
+        lambda: requests.post('http://localhost:5000/tray', json={'action': 'toggle_voice'})
+    )
+
+    # Focus mode
     start_focus = QAction("🧠 Start Focus Mode (25min)")
-    start_focus.triggered.connect(lambda: requests.post('http://localhost:5000/focus', json={'minutes': 25}))
-    
+    start_focus.triggered.connect(
+        lambda: requests.post('http://localhost:5000/focus', json={'minutes': 25})
+    )
+
+    # Whisper mode
     whisper_mode = QAction("🤫 Toggle Whisper Mode")
-    whisper_mode.triggered.connect(lambda: requests.post('http://localhost:5000/ask', json={'query': 'toggle whisper'}))
-    
+    whisper_mode.triggered.connect(
+        lambda: requests.post('http://localhost:5000/ask', json={'query': 'toggle whisper'})
+    )
+
+    # Privacy shield
     privacy_shield = QAction("🛡️ Toggle Privacy Shield")
-    privacy_shield.triggered.connect(lambda: requests.post('http://localhost:5000/privacy'))
-    
-    view_history = QAction("📜 View Conversation History")
-    view_history.triggered.connect(lambda: QMessageBox.information(None, "History", "Last 5: Coming soon!"))
-    
-    exit_action = QAction("❌ Exit")
-    exit_action.triggered.connect(app.quit)
-
-    menu.addAction(open_dashboard)
-    menu.addAction(toggle_voice)
-    menu.addAction(start_focus)
-    menu.addAction(whisper_mode)
-    menu.addAction(privacy_shield)
-    menu.addAction(view_history)
-    menu.addSeparator()
-    menu.addAction(exit_action)
-
-    tray.setContextMenu(menu)
-    tray.show()
-    
-    sys.exit(app.exec_())
+    privacy_shield.triggered.connect(
+        lambda: requests.post('http://localhost:5000/privacy')
+    )
