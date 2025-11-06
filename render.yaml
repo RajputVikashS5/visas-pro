@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: visas-pro
+    env: python
+    buildCommand: |
+      apt-get update && apt-get install -y espeak libespeak1 libespeak-dev portaudio19-dev libasound2-dev ffmpeg
+      pip install -r requirements.txt
+    startCommand: python app.py
+    autoDeploy: true

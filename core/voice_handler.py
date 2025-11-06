@@ -26,7 +26,11 @@ except Exception as e:
 
 class VoiceHandler:
     def __init__(self):
-        self.engine = pyttsx3.init()
+        try:
+            self.engine = pyttsx3.init()
+        except Exception as e:
+            print(f"[VoiceHandler] ⚠️ pyttsx3 not available: {e}")
+            self.engine = None
         self.whisper_mode = False
         self.listening = False
         self.recognizer = sr.Recognizer() if sr else None
