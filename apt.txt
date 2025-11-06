@@ -1,4 +1,6 @@
 espeak
+libespeak1
+libespeak-dev
 portaudio19-dev
 libasound2-dev
 ffmpeg
