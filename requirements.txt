@@ -18,7 +18,7 @@ pyperclip==1.8.2
 librosa==0.10.1
 numpy==1.26.4
 apscheduler==3.10.4
-porcupine-api==2.1.0
+porcupine==3.0.2
 librosa==0.10.2  # Requires Picovoice account
 gunicorn==21.2.0
 eventlet==0.33.3
